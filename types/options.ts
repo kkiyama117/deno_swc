@@ -1,6 +1,11 @@
 export interface Plugin {
   (module: Program): Program;
 }
+export interface Comment{
+  kind:"Line"|"Block",
+  span:Span,
+  text:string
+}
 
 export type ParseOptions = ParserConfig & {
   comments?: boolean;

@@ -1,5 +1,6 @@
 import init, {
   parseSync,
+  spanCommentsSync,
   printSync,
   source,
   transformSync,
@@ -7,6 +8,7 @@ import init, {
 
 import {
   Config,
+  Comment,
   ParseOptions,
   Program,
   TransformConfig,
@@ -16,6 +18,10 @@ await init(source);
 
 export function parse(source: string, opts: ParseOptions): Program {
   return parseSync(source, opts);
+}
+
+export function spanComments(source: string, opts: ParseOptions): [ Comment ] {
+  return spanCommentsSync(source, opts);
 }
 
 // TODO(littledivy): Typings for `program`
