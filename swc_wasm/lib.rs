@@ -8,12 +8,15 @@ use swc::{
     config::{Options, ParseOptions, SourceMapsConfig},
     Compiler,
 };
+use swc_common::comments::CommentsExt;
 use swc_common::{
     errors::{DiagnosticBuilder, Emitter, Handler, SourceMapperDyn},
-    FileName, FilePathMapping, SourceMap,
+    FileName, FilePathMapping, SourceMap, Span,
 };
 use swc_ecma_ast::Program;
 use wasm_bindgen::prelude::*;
+
+pub mod comments;
 
 #[wasm_bindgen(js_name = "parseSync")]
 pub fn parse_sync(s: &str, opts: JsValue) -> Result<JsValue, JsValue> {
@@ -30,7 +33,28 @@ pub fn parse_sync(s: &str, opts: JsValue) -> Result<JsValue, JsValue> {
         .parse_js(fm, opts.target, opts.syntax, opts.is_module, opts.comments)
         .map_err(|err| format!("failed to parse: {}\n{}", err, errors))?;
 
+    let comments = c.comments();
     Ok(JsValue::from_serde(&program).map_err(|err| format!("failed to return value: {}", err))?)
+}
+#[wasm_bindgen(js_name = "spanCommentsSync")]
+pub fn span_comments_sync(s: &str, span: JsValue) -> Result<JsValue, JsValue> {
+    console_error_panic_hook::set_once();
+
+    let span: Span = span
+        .into_serde()
+        .map_err(|err| format!("failed to parse span: {}", err))?;
+
+    let (c, errors) = compiler();
+
+    let fm = c.cm.new_source_file(FileName::Anon, s.into());
+    let comments = c.comments().with_leading(span.lo, |comments| {
+        comments
+            .iter()
+            .map(|x| comments::CommentInner::from(x))
+            .collect::<Vec<_>>()
+    });
+
+    Ok(JsValue::from_serde(&comments).map_err(|err| format!("failed to return value: {}", err))?)
 }
 
 #[wasm_bindgen(js_name = "printSync")]
@@ -50,11 +74,13 @@ pub fn print_sync(s: JsValue, opts: JsValue) -> Result<JsValue, JsValue> {
     let s = c
         .print(
             &program,
+            opts.output_path,
+            Default::default(),
             opts.source_maps
                 .clone()
                 .unwrap_or(SourceMapsConfig::Bool(false)),
             None,
-            opts.config.unwrap_or_default().minify.unwrap_or_default(),
+            false,
         )
         .map_err(|err| format!("failed to print: {}\n{}", err, errors))?;
 
