@@ -666,7 +666,7 @@ export type Declaration =
 export interface FunctionDeclaration extends Fn {
   type: "FunctionDeclaration";
 
-  ident: Identifier;
+  identifier: Identifier;
 
   declare: boolean;
 }
